@@ -19,9 +19,9 @@ function MyParticipation() {
     }
 
     try {
-      const response = await axios.get(
-        `http://localhost:5000/my-registrations/${volunteerId}`
-      );
+    const response = await axios.get(
+  `${API}/my-registrations/${volunteerId}`
+);
 
       setRegistrations(response.data);
     } catch (error) {
