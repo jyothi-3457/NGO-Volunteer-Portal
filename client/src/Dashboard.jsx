@@ -1,7 +1,10 @@
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import MyParticipation from "./MyParticipation";
 import Profile from "./Profile";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Dashboard() {
   const [events, setEvents] = useState([]);
@@ -11,30 +14,38 @@ function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
+    console.log("API URL:", API);
     fetchEvents();
     fetchRegistrationCounts();
   }, []);
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:5000/events"
-      );
+      console.log("Fetching events from:", `${API}/events`);
 
+      const response = await axios.get(`${API}/events`);
+
+      console.log("Events response:", response.data);
       setEvents(response.data);
     } catch (error) {
-      alert("Failed to load events");
+      console.error("Events Error:", error);
+      console.error("Error response:", error.response?.data);
+      alert(
+        error.response?.data?.message ||
+        "Failed to load events. Please check server connection."
+      );
     }
   };
 
   const fetchRegistrationCounts = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:5000/registrations"
-      );
+      console.log("Fetching registrations from:", `${API}/registrations`);
+
+      const response = await axios.get(`${API}/registrations`);
+
+      console.log("Registrations response:", response.data);
 
       const registrations = response.data;
-
       const counts = {};
 
       registrations.forEach((registration) => {
@@ -43,25 +54,28 @@ function Dashboard() {
           registration.eventId;
 
         if (eventId) {
-          counts[eventId] =
-            (counts[eventId] || 0) + 1;
+          counts[eventId] = (counts[eventId] || 0) + 1;
         }
       });
 
       setRegistrationCounts(counts);
 
-      const volunteerId =
-        localStorage.getItem("userId");
+      const volunteerId = localStorage.getItem("userId");
+
+      console.log("Logged-in Volunteer ID:", volunteerId);
 
       if (volunteerId) {
-        const myRegistrations =
-          registrations.filter(
-            (registration) =>
-              registration.volunteerId?._id ===
-              volunteerId ||
-              registration.volunteerId ===
-              volunteerId
-          );
+        const myRegistrations = registrations.filter(
+          (registration) => {
+            const registeredVolunteerId =
+              registration.volunteerId?._id ||
+              registration.volunteerId;
+
+            return String(registeredVolunteerId) === String(volunteerId);
+          }
+        );
+
+        console.log("My registrations:", myRegistrations);
 
         setRegisteredEvents(
           myRegistrations
@@ -70,19 +84,17 @@ function Dashboard() {
               registration.eventId
             )
             .filter(Boolean)
+            .map(String)
         );
       }
-
     } catch (error) {
-      console.log(
-        "Failed to load registration counts"
-      );
+      console.error("Registration Counts Error:", error);
+      console.error("Error response:", error.response?.data);
     }
   };
 
   const registerForEvent = async (eventId) => {
-    const volunteerId =
-      localStorage.getItem("userId");
+    const volunteerId = localStorage.getItem("userId");
 
     if (!volunteerId) {
       alert("Please login again");
@@ -91,7 +103,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/register-event",
+        `${API}/register-event`,
         {
           volunteerId,
           eventId
@@ -102,19 +114,20 @@ function Dashboard() {
 
       setRegisteredEvents((previous) => [
         ...previous,
-        eventId
+        String(eventId)
       ]);
 
       setRegistrationCounts((previous) => ({
         ...previous,
-        [eventId]:
-          (previous[eventId] || 0) + 1
+        [eventId]: (previous[eventId] || 0) + 1
       }));
-
     } catch (error) {
+      console.error("Event Registration Error:", error);
+      console.error("Error response:", error.response?.data);
+
       alert(
         error.response?.data?.message ||
-        "Event registration failed"
+        "Event registration failed. Please try again."
       );
     }
   };
@@ -129,8 +142,7 @@ function Dashboard() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #f7f4ec, #eef5ee)",
+          background: "linear-gradient(135deg, #f7f4ec, #eef5ee)",
           padding: "30px"
         }}
       >
@@ -159,15 +171,12 @@ function Dashboard() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #f7f4ec, #eef5ee)",
+          background: "linear-gradient(135deg, #f7f4ec, #eef5ee)",
           padding: "30px"
         }}
       >
         <button
-          onClick={() =>
-            setShowParticipation(false)
-          }
+          onClick={() => setShowParticipation(false)}
           style={{
             padding: "11px 20px",
             border: "none",
@@ -190,8 +199,7 @@ function Dashboard() {
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #f7f4ec, #eef5ee)",
+        background: "linear-gradient(135deg, #f7f4ec, #eef5ee)",
         padding: "35px"
       }}
     >
@@ -201,16 +209,13 @@ function Dashboard() {
           margin: "0 auto"
         }}
       >
-
         <div
           style={{
-            background:
-              "linear-gradient(135deg, #1f5139, #356f50)",
+            background: "linear-gradient(135deg, #1f5139, #356f50)",
             color: "white",
             padding: "30px",
             borderRadius: "18px",
-            boxShadow:
-              "0 12px 30px rgba(31,81,57,0.20)",
+            boxShadow: "0 12px 30px rgba(31,81,57,0.20)",
             marginBottom: "30px"
           }}
         >
@@ -224,22 +229,11 @@ function Dashboard() {
             }}
           >
             <div>
-              <h1
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: "34px"
-                }}
-              >
+              <h1 style={{ margin: "0 0 8px", fontSize: "34px" }}>
                 Volunteer Dashboard
               </h1>
 
-              <p
-                style={{
-                  margin: 0,
-                  opacity: 0.9,
-                  fontSize: "16px"
-                }}
-              >
+              <p style={{ margin: 0, opacity: 0.9, fontSize: "16px" }}>
                 Welcome to the NGO Volunteer Portal
               </p>
             </div>
@@ -279,17 +273,14 @@ function Dashboard() {
               color: "#2f6b4f",
               fontWeight: "600",
               cursor: "pointer",
-              boxShadow:
-                "0 5px 18px rgba(40,70,50,0.10)"
+              boxShadow: "0 5px 18px rgba(40,70,50,0.10)"
             }}
           >
             👤 My Profile
           </button>
 
           <button
-            onClick={() =>
-              setShowParticipation(true)
-            }
+            onClick={() => setShowParticipation(true)}
             style={{
               padding: "13px 22px",
               border: "none",
@@ -298,8 +289,7 @@ function Dashboard() {
               color: "#2f6b4f",
               fontWeight: "600",
               cursor: "pointer",
-              boxShadow:
-                "0 5px 18px rgba(40,70,50,0.10)"
+              boxShadow: "0 5px 18px rgba(40,70,50,0.10)"
             }}
           >
             📋 My Participation
@@ -324,20 +314,16 @@ function Dashboard() {
                 padding: "30px",
                 borderRadius: "14px",
                 textAlign: "center",
-                boxShadow:
-                  "0 5px 20px rgba(40,70,50,0.08)"
+                boxShadow: "0 5px 20px rgba(40,70,50,0.08)"
               }}
             >
-              <p>
-                No community events available.
-              </p>
+              <p>No community events available.</p>
             </div>
           ) : (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(300px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
                 gap: "22px"
               }}
             >
@@ -348,37 +334,29 @@ function Dashboard() {
                 const maximumVolunteers =
                   Number(event.maximumVolunteers) || 0;
 
-                const remainingVolunteers =
-                  Math.max(
-                    maximumVolunteers -
-                    registeredCount,
-                    0
-                  );
+                const remainingVolunteers = Math.max(
+                  maximumVolunteers - registeredCount,
+                  0
+                );
 
-                const isRegistered =
-                  registeredEvents.includes(
-                    event._id
-                  );
+                const isRegistered = registeredEvents.includes(
+                  String(event._id)
+                );
 
-                const isFull =
-                  remainingVolunteers === 0;
+                const isFull = remainingVolunteers === 0;
 
                 return (
                   <div
                     key={event._id}
                     style={{
-                      background:
-                        "rgba(255,255,255,0.95)",
+                      background: "rgba(255,255,255,0.95)",
                       borderRadius: "16px",
                       padding: "25px",
-                      boxShadow:
-                        "0 8px 25px rgba(40,70,50,0.10)",
-                      border:
-                        "1px solid rgba(47,107,79,0.10)",
+                      boxShadow: "0 8px 25px rgba(40,70,50,0.10)",
+                      border: "1px solid rgba(47,107,79,0.10)",
                       transition: "0.25s"
                     }}
                   >
-
                     <div
                       style={{
                         display: "inline-block",
@@ -398,8 +376,7 @@ function Dashboard() {
                       style={{
                         color: "#214d37",
                         fontSize: "22px",
-                        margin:
-                          "5px 0 18px"
+                        margin: "5px 0 18px"
                       }}
                     >
                       {event.eventTitle}
@@ -407,19 +384,15 @@ function Dashboard() {
 
                     <p>
                       <strong>📅 Date:</strong>{" "}
-                      {new Date(
-                        event.eventDate
-                      ).toLocaleDateString()}
+                      {new Date(event.eventDate).toLocaleDateString()}
                     </p>
 
                     <p>
-                      <strong>📍 Venue:</strong>{" "}
-                      {event.venue}
+                      <strong>📍 Venue:</strong> {event.venue}
                     </p>
 
                     <p>
-                      <strong>👥 Organizer:</strong>{" "}
-                      {event.organizer}
+                      <strong>👥 Organizer:</strong> {event.organizer}
                     </p>
 
                     <p>
@@ -432,27 +405,16 @@ function Dashboard() {
                         marginTop: "18px",
                         padding: "13px 15px",
                         borderRadius: "10px",
-                        background: isFull
-                          ? "#f8e5e5"
-                          : "#edf6ef",
-                        color: isFull
-                          ? "#b33a3a"
-                          : "#2f6b4f",
+                        background: isFull ? "#f8e5e5" : "#edf6ef",
+                        color: isFull ? "#b33a3a" : "#2f6b4f",
                         fontWeight: "600",
                         fontSize: "14px"
                       }}
                     >
                       {isFull ? (
                         <>
-                          ✓ {registeredCount} volunteers
-                          registered
-                          <br />
-                          <span
-                            style={{
-                              display: "block",
-                              marginTop: "5px"
-                            }}
-                          >
+                          ✓ {registeredCount} volunteers registered
+                          <span style={{ display: "block", marginTop: "5px" }}>
                             Registration Full
                           </span>
                         </>
@@ -463,13 +425,7 @@ function Dashboard() {
                             ? "volunteer"
                             : "volunteers"}{" "}
                           registered
-                          <br />
-                          <span
-                            style={{
-                              display: "block",
-                              marginTop: "5px"
-                            }}
-                          >
+                          <span style={{ display: "block", marginTop: "5px" }}>
                             {remainingVolunteers} more{" "}
                             {remainingVolunteers === 1
                               ? "volunteer"
@@ -481,12 +437,8 @@ function Dashboard() {
                     </div>
 
                     <button
-                      onClick={() =>
-                        registerForEvent(event._id)
-                      }
-                      disabled={
-                        isRegistered || isFull
-                      }
+                      onClick={() => registerForEvent(event._id)}
+                      disabled={isRegistered || isFull}
                       style={{
                         width: "100%",
                         marginTop: "12px",
@@ -511,14 +463,12 @@ function Dashboard() {
                         ? "Registration Full"
                         : "Register for Event"}
                     </button>
-
                   </div>
                 );
               })}
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
